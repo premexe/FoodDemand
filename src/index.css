@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #00ff9d;
+  --accent-glow: rgba(0, 255, 157, 0.4);
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-border: rgba(255, 255, 255, 0.05);
+  --text-main: #ffffff;
+  --text-muted: #888888;
+}
+
+@layer base {
+  body {
+    @apply bg-black text-white overflow-x-hidden antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Cinematic Background Grid */
+.bg-mesh {
+  background-image:
+    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+/* Glow Effects */
+.glow-text {
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+
+.glow-box {
+  box-shadow: 0 0 40px -10px var(--accent-glow);
+}
+
+/* Glassmorphism System */
+.glass-header {
+  @apply bg-black/50 backdrop-blur-2xl border-b border-white/5;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card {
+  @apply bg-[#0a0a0a] backdrop-blur-md border border-white/5;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Bento Card System - Updated for Dark Theme */
+.bento-card {
+  @apply relative overflow-hidden rounded-[32px] bg-[#0a0a0a] border border-white/5;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bento-card:hover {
+  @apply border-white/10 transform -translate-y-1;
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.5);
+}
+
+/* Text Reveal Animation */
+.text-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Floating Animation */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-black;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+}
+
+/* Metric Bars */
+.metric-bar {
+  @apply h-1.5 w-full bg-white/5 rounded-full overflow-hidden;
+}
+
+.metric-fill {
+  @apply h-full bg-[#00ff9d] rounded-full;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Badge styles */
+.badge-neon {
+  @apply px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold tracking-[0.2em] text-white/60 uppercase;
+}
