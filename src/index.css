@@ -10,11 +10,21 @@
   --surface-border: rgba(255, 255, 255, 0.05);
   --text-main: #ffffff;
   --text-muted: #888888;
+  --app-bg: #000000;
+  --app-text: #ffffff;
+}
+
+:root[data-app-theme='light'] {
+  --app-bg: #f7faf7;
+  --app-text: #111111;
 }
 
 @layer base {
   body {
-    @apply bg-black text-white overflow-x-hidden antialiased;
+    overflow-x: hidden;
+    background: var(--app-bg);
+    color: var(--app-text);
+    -webkit-font-smoothing: antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }

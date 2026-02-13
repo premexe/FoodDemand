@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "otp-server": "node server/index.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -19,7 +20,12 @@
     "@mui/x-date-pickers": "^8.27.0",
     "@mui/x-tree-view": "^8.27.0",
     "@react-spring/web": "^10.0.3",
+    "cors": "^2.8.5",
     "dayjs": "^1.11.19",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "firebase": "^12.9.0",
+    "nodemailer": "^7.0.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0"

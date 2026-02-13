@@ -1,16 +1,35 @@
-# React + Vite
+# FoodDemand Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Setup
 
-Currently, two official plugins are available:
+1. Install dependencies:
+   - `npm install`
+2. Configure `.env` (use `.env.example` as reference):
+   - `VITE_FIREBASE_API_KEY=...`
+   - `VITE_FIREBASE_AUTH_DOMAIN=...`
+   - `VITE_FIREBASE_PROJECT_ID=...`
+   - `VITE_FIREBASE_APP_ID=...`
+   - `VITE_OTP_API_BASE_URL=http://localhost:8787`
+   - `OTP_SERVER_PORT=8787`
+   - `OTP_ALLOWED_ORIGIN=http://localhost:5173`
+   - `SMTP_HOST=...`
+   - `SMTP_PORT=587`
+   - `SMTP_SECURE=false`
+   - `SMTP_USER=...`
+   - `SMTP_PASS=...`
+   - `SMTP_FROM=...`
+3. In Firebase Console:
+   - Enable `Authentication -> Sign-in method -> Phone`
+   - Add your localhost/dev domain in authorized domains
+   - Configure reCAPTCHA as required by Firebase Phone Auth
+4. Run OTP server:
+   - `npm run otp-server`
+5. Run app:
+   - `npm run dev`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## OTP Rules
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Sign-up requires phone OTP verification.
+- Only Indian phone numbers are accepted (`+91` format and valid 10-digit mobile ranges).
+- User account creation is blocked until OTP is verified.
+- Sign-up can also use Email OTP (real SMTP delivery via backend endpoint).
