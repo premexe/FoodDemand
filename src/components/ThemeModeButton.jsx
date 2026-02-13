@@ -39,7 +39,11 @@ export default function ThemeModeButton({ className = '' }) {
       type="button"
       aria-label="Toggle dark light mode"
       onClick={() => setMode((prev) => (resolveTheme(prev) === 'dark' ? 'light' : 'dark'))}
-      className={`h-10 w-10 rounded-full border border-white/20 bg-black/50 backdrop-blur-lg flex items-center justify-center ${className}`}
+      className={`h-10 w-10 rounded-full backdrop-blur-lg flex items-center justify-center transition-colors ${className}`}
+      style={{
+        backgroundColor: resolvedTheme === 'dark' ? 'rgba(8, 12, 10, 0.55)' : 'rgba(255, 255, 255, 0.68)',
+        border: `1px solid ${resolvedTheme === 'dark' ? 'rgba(255,255,255,0.24)' : 'rgba(15,23,20,0.24)'}`,
+      }}
     >
       {resolvedTheme === 'dark' ? (
         <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">

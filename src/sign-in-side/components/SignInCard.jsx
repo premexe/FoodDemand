@@ -74,7 +74,7 @@ export default function SignInCard() {
 
   React.useEffect(() => {
     if (isAuthenticated()) {
-      navigate('/home', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
@@ -101,7 +101,7 @@ export default function SignInCard() {
           remember: form.persistent,
         });
       }
-      navigate('/home', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       setFormError(error.message || 'Unable to authenticate.');
     } finally {
@@ -114,7 +114,7 @@ export default function SignInCard() {
     setIsLoading(true);
     try {
       await loginWithSocial(provider, form.persistent);
-      navigate('/home', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       setFormError(error.message || `Unable to continue with ${provider}.`);
     } finally {
@@ -365,21 +365,34 @@ export default function SignInCard() {
             {isLoading ? 'Verifying...' : isSignUp ? 'Create account' : 'Sign in'}
           </Button>
 
-          <Typography variant="body2">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <Link
-              component="button"
+          <Stack direction="row" sx={{ gap: 1 }}>
+            <Button
               type="button"
+              variant={isSignUp ? 'outlined' : 'contained'}
               onClick={() => {
                 setFormError('');
-                setIsSignUp((value) => !value);
+                setIsSignUp(false);
                 setVerificationMethod('phone');
                 resetOtpState();
               }}
+              sx={{ flex: 1 }}
             >
-              {isSignUp ? 'Sign in' : 'Sign up'}
-            </Link>
-          </Typography>
+              Sign in
+            </Button>
+            <Button
+              type="button"
+              variant={isSignUp ? 'contained' : 'outlined'}
+              onClick={() => {
+                setFormError('');
+                setIsSignUp(true);
+                setVerificationMethod('phone');
+                resetOtpState();
+              }}
+              sx={{ flex: 1 }}
+            >
+              Sign up
+            </Button>
+          </Stack>
         </Stack>
       </form>
 

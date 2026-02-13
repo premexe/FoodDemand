@@ -12,11 +12,17 @@
   --text-muted: #888888;
   --app-bg: #000000;
   --app-text: #ffffff;
+  --badge-bg: rgba(255, 255, 255, 0.07);
+  --badge-border: rgba(255, 255, 255, 0.15);
+  --badge-text: rgba(255, 255, 255, 0.72);
 }
 
 :root[data-app-theme='light'] {
   --app-bg: #f7faf7;
   --app-text: #111111;
+  --badge-bg: rgba(15, 23, 20, 0.06);
+  --badge-border: rgba(15, 23, 20, 0.14);
+  --badge-text: rgba(15, 23, 20, 0.66);
 }
 
 @layer base {
@@ -27,6 +33,41 @@
     -webkit-font-smoothing: antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeUp 0.7s ease forwards;
+}
+
+.fade-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.fade-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.float-soft {
+  animation: floatSoft 6s ease-in-out infinite;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatSoft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
   }
 }
 
@@ -124,5 +165,8 @@
 
 /* Badge styles */
 .badge-neon {
-  @apply px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold tracking-[0.2em] text-white/60 uppercase;
+  @apply px-3 py-1 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase;
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  color: var(--badge-text);
 }

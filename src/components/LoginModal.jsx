@@ -82,7 +82,7 @@ export default function LoginModal({ isOpen, onClose }) {
           remember: true,
         });
       }
-      navigate('/home', { replace: true });
+      navigate('/dashboard', { replace: true });
       onClose();
     } catch (error) {
       setAuthError(error.message || 'Authentication failed.');
@@ -96,7 +96,7 @@ export default function LoginModal({ isOpen, onClose }) {
     setIsLoading(true);
     try {
       await loginWithSocial(provider, true);
-      navigate('/home', { replace: true });
+      navigate('/dashboard', { replace: true });
       onClose();
     } catch (error) {
       setAuthError(error.message || `Unable to continue with ${provider}.`);
@@ -416,19 +416,34 @@ export default function LoginModal({ isOpen, onClose }) {
               </div>
             </form>
 
-            <div className="mt-8 text-center text-[10px] font-bold uppercase tracking-widest text-white/20">
-              {isSignUp ? 'Already a partner?' : 'Interested in early release?'}{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setVerificationMethod('phone');
-                  resetOtp();
-                }}
-                className="text-[#00ff9d] hover:text-[#00ff9d]/80 transition-colors ml-2"
-              >
-                {isSignUp ? 'Sign In' : 'Apply Now'}
-              </button>
+            <div className="mt-8">
+              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-white/20 mb-3">
+                Account Access
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(false);
+                    setVerificationMethod('phone');
+                    resetOtp();
+                  }}
+                  className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-colors ${isSignUp ? 'bg-white/[0.03] text-white/60 border-white/10 hover:bg-white/[0.08]' : 'bg-[#00ff9d] text-black border-[#00ff9d]'}`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(true);
+                    setVerificationMethod('phone');
+                    resetOtp();
+                  }}
+                  className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-colors ${isSignUp ? 'bg-[#00ff9d] text-black border-[#00ff9d]' : 'bg-white/[0.03] text-white/60 border-white/10 hover:bg-white/[0.08]'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
             </div>
           </div>
         </div>

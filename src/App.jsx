@@ -1,9 +1,11 @@
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import SignInSide from './sign-in-side/SignInSide';
-import Dashboard from './dashboard/Dashboard';
-import Home from './pages/Home';
 import LandingPage from './pages/LandingPage';
 import ProtectedRoute from './auth/ProtectedRoute';
+import UploadDataPage from './pages/UploadDataPage';
+import HomeDashboardPage from './pages/HomeDashboardPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -15,7 +17,15 @@ function App() {
           path="/home"
           element={(
             <ProtectedRoute>
-              <Home />
+              <Navigate to="/dashboard" replace />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/upload"
+          element={(
+            <ProtectedRoute>
+              <UploadDataPage />
             </ProtectedRoute>
           )}
         />
@@ -23,10 +33,27 @@ function App() {
           path="/dashboard"
           element={(
             <ProtectedRoute>
-              <Dashboard />
+              <HomeDashboardPage />
             </ProtectedRoute>
           )}
         />
+        <Route
+          path="/analytics"
+          element={(
+            <ProtectedRoute>
+              <AnalyticsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/profile"
+          element={(
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );

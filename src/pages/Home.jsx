@@ -7,10 +7,9 @@ const THEME_KEY = 'fooddemand.home.theme';
 const THEME_EVENT = 'fd-theme-change';
 
 const links = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'features', label: 'Features' },
-  { id: 'impact', label: 'Impact' },
-  { id: 'contact', label: 'Contact' },
+  { id: 'upload-data', label: 'Upload Data' },
+  { id: 'dashboard-section', label: 'Dashboard' },
+  { id: 'suggestions-section', label: 'Suggestions' },
   { id: 'profile', label: 'Profile' },
 ];
 
@@ -39,6 +38,9 @@ export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem(THEME_KEY) || 'dark');
   const [systemDark, setSystemDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [previewRows, setPreviewRows] = useState([]);
 
   const resolvedTheme = useMemo(() => {
     if (themeMode === 'system') {
@@ -94,6 +96,40 @@ export default function Home() {
     { label: 'Theme', value: resolvedTheme.charAt(0).toUpperCase() + resolvedTheme.slice(1) },
   ];
 
+  const handleDatasetUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const isCsv = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv';
+    if (!isCsv) {
+      setUploadStatus('Please upload a CSV file only.');
+      setUploadedFileName('');
+      setPreviewRows([]);
+      return;
+    }
+
+    setUploadedFileName(file.name);
+
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) {
+        setUploadStatus('CSV uploaded, but no data rows found.');
+        setPreviewRows([]);
+        return;
+      }
+
+      const rows = lines.slice(0, 6).map((line) => line.split(',').map((cell) => cell.trim()));
+      setPreviewRows(rows);
+      setUploadStatus(`Dataset uploaded successfully. Showing first ${Math.max(rows.length - 1, 0)} rows.`);
+    } catch {
+      setUploadStatus('Unable to read this CSV file. Try another file.');
+      setPreviewRows([]);
+    }
+  };
+
   return (
     <div
       style={{ backgroundColor: activeTheme.bg, color: activeTheme.text }}
@@ -133,7 +169,7 @@ export default function Home() {
       </header>
 
       <main>
-        <section id="overview" className="container mx-auto px-10 pt-40 pb-24">
+        <section className="container mx-auto px-10 pt-40 pb-20">
           <div className="badge-neon mb-8 w-fit">Logged In Home</div>
           <h1 className="text-[64px] md:text-[100px] font-black tracking-tighter leading-[0.92] mb-8 text-reveal">
             Master the<br />
@@ -141,49 +177,77 @@ export default function Home() {
             Precision<span className="text-[#00ff9d]">.</span>
           </h1>
           <p className="max-w-2xl text-lg md:text-xl" style={{ color: activeTheme.muted }}>
-            Welcome back{user?.name ? `, ${user.name}` : ''}. This is your post-login home page with a landing-page structure and section-based navigation.
+            Welcome back{user?.name ? `, ${user.name}` : ''}. This workspace is focused on intelligent food demand forecasting and waste optimization.
           </p>
         </section>
 
-        <section id="features" className="container mx-auto px-10 py-14">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <article className="bento-card p-9" style={cardStyle}>
-              <h3 className="text-2xl font-black tracking-tight uppercase mb-3">Demand Signals</h3>
-              <p style={{ color: activeTheme.muted }}>Track shifts faster with sectioned intelligence blocks and simplified operational views.</p>
-            </article>
-            <article className="bento-card p-9" style={cardStyle}>
-              <h3 className="text-2xl font-black tracking-tight uppercase mb-3">Forecast Accuracy</h3>
-              <p style={{ color: activeTheme.muted }}>Bring the same high-impact visual style from landing into your logged-in experience.</p>
-            </article>
-            <article className="bento-card p-9" style={cardStyle}>
-              <h3 className="text-2xl font-black tracking-tight uppercase mb-3">Action Blocks</h3>
-              <p style={{ color: activeTheme.muted }}>Organize workflows by sections so the navbar maps directly to what teams need.</p>
-            </article>
+        <section id="upload-data" className="container mx-auto px-10 py-14">
+          <div className="bento-card p-10 md:p-12" style={cardStyle}>
+            <div className="badge-neon mb-6 w-fit">Upload Data</div>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight uppercase mb-5">Upload Dataset (CSV)</h2>
+            <p className="text-base md:text-lg mb-8 max-w-3xl" style={{ color: activeTheme.muted }}>
+              Upload your daily sales CSV so CookIQ.ai can start demand forecasting and waste optimization from real historical patterns.
+            </p>
+
+            <div className="rounded-3xl p-6 md:p-8 mb-6" style={cardStyle}>
+              <label className="block text-[11px] font-black uppercase tracking-[0.2em] mb-4" style={{ color: activeTheme.muted }}>
+                Select CSV File
+              </label>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleDatasetUpload}
+                className="block w-full text-sm"
+              />
+              {uploadedFileName && (
+                <p className="mt-4 text-sm font-semibold">
+                  File: <span style={{ color: activeTheme.muted }}>{uploadedFileName}</span>
+                </p>
+              )}
+              {uploadStatus && (
+                <p className="mt-3 text-sm font-semibold" style={{ color: activeTheme.muted }}>
+                  {uploadStatus}
+                </p>
+              )}
+            </div>
+
+            {previewRows.length > 0 && (
+              <div className="overflow-x-auto rounded-3xl" style={cardStyle}>
+                <table className="w-full text-left text-sm">
+                  <tbody>
+                    {previewRows.map((row, rowIndex) => (
+                      <tr key={`${rowIndex}-${row.join('-')}`} className={rowIndex === 0 ? 'font-black uppercase text-[11px]' : ''}>
+                        {row.map((cell, cellIndex) => (
+                          <td key={`${rowIndex}-${cellIndex}`} className="px-4 py-3 border-b border-white/10">
+                            {cell || '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
 
-        <section id="impact" className="container mx-auto px-10 py-20">
-          <div className="bento-card p-12" style={cardStyle}>
-            <div className="badge-neon mb-6 w-fit">Impact</div>
-            <h2 className="text-5xl md:text-7xl font-black tracking-tight uppercase mb-8">Operate With Confidence</h2>
-            <p className="text-lg max-w-3xl" style={{ color: activeTheme.muted }}>
-              Keep this page focused on key metrics and next actions. The theme switcher persists your preference across sessions.
+        <section id="dashboard-section" className="container mx-auto px-10 py-12">
+          <div className="bento-card p-10" style={cardStyle}>
+            <div className="badge-neon mb-4 w-fit">Dashboard</div>
+            <h3 className="text-3xl font-black uppercase tracking-tight mb-3">Dashboard Section</h3>
+            <p style={{ color: activeTheme.muted }}>
+              Placeholder section added. We can build this block next with your required dashboard widgets.
             </p>
           </div>
         </section>
 
-        <section id="contact" className="container mx-auto px-10 py-12">
-          <div className="bento-card p-10 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between" style={cardStyle}>
-            <div>
-              <h3 className="text-3xl font-black uppercase tracking-tight">Need A Deep Dive?</h3>
-              <p style={{ color: activeTheme.muted }}>Open your analytics dashboard or contact your specialist from here.</p>
-            </div>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-8 py-4 bg-[#00ff9d] text-black font-black rounded-full text-sm uppercase tracking-widest"
-            >
-              Open Dashboard
-            </button>
+        <section id="suggestions-section" className="container mx-auto px-10 py-12">
+          <div className="bento-card p-10" style={cardStyle}>
+            <div className="badge-neon mb-4 w-fit">Suggestions</div>
+            <h3 className="text-3xl font-black uppercase tracking-tight mb-3">Suggestions Section</h3>
+            <p style={{ color: activeTheme.muted }}>
+              Placeholder section added. We can implement AI suggestions logic here when you say.
+            </p>
           </div>
         </section>
 
@@ -201,12 +265,6 @@ export default function Home() {
               ))}
             </div>
             <div className="flex gap-3 flex-wrap">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="px-7 py-3 bg-[#00ff9d] text-black rounded-full text-sm font-black uppercase tracking-widest"
-              >
-                Open Dashboard
-              </button>
               <button
                 onClick={() => {
                   logout();
