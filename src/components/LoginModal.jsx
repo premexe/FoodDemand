@@ -191,7 +191,7 @@ export default function LoginModal({ isOpen, onClose }) {
             </svg>
           </button>
 
-          <div className="relative p-12">
+          <div className="relative p-8 sm:p-10 max-h-[88vh] overflow-y-auto">
             <div className="text-center mb-10">
               <div className="inline-flex items-center gap-3 mb-6">
                 <div className="w-3 h-3 rounded-full bg-[#00ff9d] shadow-[0_0_15px_rgba(0,255,157,0.5)]" />
@@ -416,34 +416,38 @@ export default function LoginModal({ isOpen, onClose }) {
               </div>
             </form>
 
-            <div className="mt-8">
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-white/20 mb-3">
-                Account Access
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSignUp(false);
-                    setVerificationMethod('phone');
-                    resetOtp();
-                  }}
-                  className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-colors ${isSignUp ? 'bg-white/[0.03] text-white/60 border-white/10 hover:bg-white/[0.08]' : 'bg-[#00ff9d] text-black border-[#00ff9d]'}`}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSignUp(true);
-                    setVerificationMethod('phone');
-                    resetOtp();
-                  }}
-                  className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-colors ${isSignUp ? 'bg-[#00ff9d] text-black border-[#00ff9d]' : 'bg-white/[0.03] text-white/60 border-white/10 hover:bg-white/[0.08]'}`}
-                >
-                  Sign Up
-                </button>
-              </div>
+            <div className="mt-8 text-center">
+              {!isSignUp ? (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                  Need access?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setVerificationMethod('phone');
+                      resetOtp();
+                    }}
+                    className="text-[#00ff9d] hover:text-[#6effc6] transition-colors"
+                  >
+                    Sign Up
+                  </button>
+                </p>
+              ) : (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                  Already registered?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(false);
+                      setVerificationMethod('phone');
+                      resetOtp();
+                    }}
+                    className="text-[#00ff9d] hover:text-[#6effc6] transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </p>
+              )}
             </div>
           </div>
         </div>
