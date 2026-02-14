@@ -38,12 +38,6 @@ const featureCards = [
   { title: 'NLP Copilot', text: 'Ask questions and get direct operational recommendations.' },
 ];
 
-const stats = [
-  { label: 'Data Formats', value: 'CSV, XLSX, XLS' },
-  { label: 'Dashboard Mode', value: 'Dataset-driven only' },
-  { label: 'Analytics Scope', value: 'Trend + Seasonality + Suggestions' },
-];
-
 export default function LandingPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -116,8 +110,8 @@ export default function LandingPage() {
       </header>
 
       <main className="container mx-auto px-6 md:px-10 pt-44 pb-24 relative z-10 space-y-28">
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-10 items-center">
-          <div className="fade-up">
+        <section className="max-w-4xl fade-up">
+          <div>
             <div className="badge-neon mb-6 w-fit">AI Decision System</div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[0.95] mb-6">
               Predict Demand.
@@ -136,18 +130,6 @@ export default function LandingPage() {
               <button className="px-8 py-4 rounded-full text-sm font-black uppercase tracking-[0.15em]" style={{ border: `1px solid ${activeTheme.border}` }}>
                 View Product Tour
               </button>
-            </div>
-          </div>
-
-          <div className="rounded-[32px] p-6 md:p-8 fade-up fade-delay-1 float-soft" style={{ backgroundColor: activeTheme.card, border: `1px solid ${activeTheme.border}` }}>
-            <h2 className="text-xl font-black uppercase tracking-tight mb-4">Live Snapshot</h2>
-            <div className="space-y-3">
-              {stats.map((item) => (
-                <div key={item.label} className="rounded-2xl p-4" style={{ backgroundColor: activeTheme.card, border: `1px solid ${activeTheme.border}` }}>
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em]" style={{ color: activeTheme.muted }}>{item.label}</p>
-                  <p className="text-lg font-black mt-1">{item.value}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>

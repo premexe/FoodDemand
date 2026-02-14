@@ -13,6 +13,14 @@ function chartSx(theme) {
     '& .MuiChartsAxis-root .MuiChartsAxis-tick': { stroke: theme.border },
     '& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label': { fill: theme.text, fontSize: 11 },
     '& .MuiChartsGrid-line': { stroke: theme.border },
+    '& .MuiChartsLegend-root, & .MuiChartsLegend-root *': {
+      color: `${theme.text} !important`,
+      fill: `${theme.text} !important`,
+    },
+    '& .MuiChartsTooltip-root, & .MuiChartsTooltip-root *': {
+      color: `${theme.text} !important`,
+      fill: `${theme.text} !important`,
+    },
   };
 }
 
@@ -70,6 +78,9 @@ export default function HomeDashboardPage() {
   const user = getCurrentUser();
   const userId = user?.email || '';
   const [dataset, setDataset] = useState(() => loadDatasetForUser(userId));
+  const [selectedItem, setSelectedItem] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     const refresh = (event) => {
@@ -86,7 +97,47 @@ export default function HomeDashboardPage() {
     setDataset(loadDatasetForUser(userId));
   }, [userId]);
 
-  const summary = useMemo(() => summarizeDataset(dataset), [dataset]);
+  const datasetRows = useMemo(() => (Array.isArray(dataset?.rows) ? dataset.rows : []), [dataset]);
+
+  const itemOptions = useMemo(() => {
+    return Array.from(new Set(datasetRows.map((row) => row.itemName))).sort((a, b) => a.localeCompare(b));
+  }, [datasetRows]);
+
+  const dateBounds = useMemo(() => {
+    if (!datasetRows.length) return { minDate: '', maxDate: '' };
+    let minDate = datasetRows[0].date;
+    let maxDate = datasetRows[0].date;
+    datasetRows.forEach((row) => {
+      if (row.date < minDate) minDate = row.date;
+      if (row.date > maxDate) maxDate = row.date;
+    });
+    return { minDate, maxDate };
+  }, [datasetRows]);
+
+  useEffect(() => {
+    if (selectedItem !== 'all' && !itemOptions.includes(selectedItem)) {
+      setSelectedItem('all');
+    }
+  }, [selectedItem, itemOptions]);
+
+  const filteredRows = useMemo(() => {
+    return datasetRows.filter((row) => {
+      if (selectedItem !== 'all' && row.itemName !== selectedItem) return false;
+      if (startDate && row.date < startDate) return false;
+      if (endDate && row.date > endDate) return false;
+      return true;
+    });
+  }, [datasetRows, selectedItem, startDate, endDate]);
+
+  const summary = useMemo(() => summarizeDataset({ rows: filteredRows }), [filteredRows]);
+  const hasDataset = datasetRows.length > 0;
+  const filtersActive = selectedItem !== 'all' || Boolean(startDate) || Boolean(endDate);
+
+  const clearFilters = () => {
+    setSelectedItem('all');
+    setStartDate('');
+    setEndDate('');
+  };
 
   return (
     <AuthenticatedSectionLayout
@@ -94,7 +145,7 @@ export default function HomeDashboardPage() {
       subtitle="Dataset-driven cockpit. Import data first to generate KPIs and visuals from your own records."
     >
       {({ activeTheme, cardStyle }) => {
-        if (!summary) {
+        if (!hasDataset) {
           return (
             <div className="rounded-3xl p-10 border text-center" style={cardStyle}>
               <div className="badge-neon w-fit mx-auto mb-4">No Dataset Imported</div>
@@ -109,6 +160,61 @@ export default function HomeDashboardPage() {
               >
                 Go To Upload Data
               </Link>
+            </div>
+          );
+        }
+
+        if (!summary) {
+          return (
+            <div className="space-y-6">
+              <section className="rounded-3xl p-6 border" style={cardStyle}>
+                <div className="badge-neon mb-3 w-fit">Chart Filters</div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <select
+                    value={selectedItem}
+                    onChange={(event) => setSelectedItem(event.target.value)}
+                    className="rounded-xl px-3 py-2 text-sm"
+                    style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                  >
+                    <option value="all" style={{ color: '#111', backgroundColor: '#fff' }}>All Items</option>
+                    {itemOptions.map((item) => (
+                      <option key={item} value={item} style={{ color: '#111', backgroundColor: '#fff' }}>{item}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={startDate}
+                    min={dateBounds.minDate || undefined}
+                    max={endDate || dateBounds.maxDate || undefined}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    className="rounded-xl px-3 py-2 text-sm"
+                    style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                  />
+                  <input
+                    type="date"
+                    value={endDate}
+                    min={startDate || dateBounds.minDate || undefined}
+                    max={dateBounds.maxDate || undefined}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    className="rounded-xl px-3 py-2 text-sm"
+                    style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                  />
+                  <button onClick={clearFilters} className="rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em]" style={cardStyle}>
+                    Clear Filters
+                  </button>
+                </div>
+                <p className="text-xs font-semibold mt-3" style={{ color: activeTheme.muted }}>
+                  Showing 0 of {formatNumber(datasetRows.length)} rows.
+                </p>
+              </section>
+
+              <div className="rounded-3xl p-10 border text-center" style={cardStyle}>
+                <div className="badge-neon w-fit mx-auto mb-4">No Rows For Current Filters</div>
+                <h2 className="text-3xl font-black tracking-tight mb-3">Adjust Item or Date Filters</h2>
+                <p className="max-w-2xl mx-auto text-sm" style={{ color: activeTheme.muted }}>
+                  Your dataset is available, but the selected filters returned no records.
+                </p>
+              </div>
             </div>
           );
         }
@@ -147,6 +253,54 @@ export default function HomeDashboardPage() {
 
         return (
           <div className="space-y-6">
+            <section className="rounded-3xl p-6 border" style={cardStyle}>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div className="badge-neon w-fit">Chart Filters</div>
+                <p className="text-xs font-semibold" style={{ color: activeTheme.muted }}>
+                  Showing {formatNumber(filteredRows.length)} of {formatNumber(datasetRows.length)} rows
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <select
+                  value={selectedItem}
+                  onChange={(event) => setSelectedItem(event.target.value)}
+                  className="rounded-xl px-3 py-2 text-sm"
+                  style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                >
+                  <option value="all" style={{ color: '#111', backgroundColor: '#fff' }}>All Items</option>
+                  {itemOptions.map((item) => (
+                    <option key={item} value={item} style={{ color: '#111', backgroundColor: '#fff' }}>{item}</option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={startDate}
+                  min={dateBounds.minDate || undefined}
+                  max={endDate || dateBounds.maxDate || undefined}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="rounded-xl px-3 py-2 text-sm"
+                  style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                />
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || dateBounds.minDate || undefined}
+                  max={dateBounds.maxDate || undefined}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="rounded-xl px-3 py-2 text-sm"
+                  style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                />
+                <button
+                  onClick={clearFilters}
+                  disabled={!filtersActive}
+                  className="rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] disabled:opacity-60"
+                  style={cardStyle}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </section>
+
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
               {kpis.map((kpi) => (
                 <div key={kpi.label} className="rounded-3xl p-5 border" style={cardStyle}>
