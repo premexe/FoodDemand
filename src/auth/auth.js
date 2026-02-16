@@ -75,7 +75,7 @@ function normalizeIndianPhone(phoneNumber) {
   return `+91${lastTenDigits}`;
 }
 
-function readVerifiedOtps() {
+function readVerifiedOtps() { 
   const raw = safeParse(localStorage.getItem(OTP_VERIFIED_KEY) ?? '{}', {});
   return raw && typeof raw === 'object' ? raw : {};
 }

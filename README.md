@@ -10,6 +10,8 @@
    - `VITE_FIREBASE_PROJECT_ID=...`
    - `VITE_FIREBASE_APP_ID=...`
    - `VITE_OTP_API_BASE_URL=http://localhost:8787`
+   - `VITE_FORECAST_API_URL=https://your-forecast-api.onrender.com`
+   - `VITE_FORECAST_API_KEY=...` (optional; sent as `x-api-key`)
    - `OTP_SERVER_PORT=8787`
    - `OTP_ALLOWED_ORIGIN=http://localhost:5173`
    - `SMTP_HOST=...`

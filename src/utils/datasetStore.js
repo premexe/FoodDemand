@@ -99,6 +99,15 @@ export function appendUploadHistoryForUser(userId, record, limit = 20) {
   writeScoped(HISTORY_KEY, historyStore);
 }
 
+export function removeUploadHistoryEntriesForUser(userId, entryIds) {
+  const scope = userScope(userId);
+  const historyStore = readScoped(HISTORY_KEY);
+  const current = Array.isArray(historyStore[scope]) ? historyStore[scope] : [];
+  const ids = new Set((Array.isArray(entryIds) ? entryIds : []).map((id) => String(id)));
+  historyStore[scope] = current.filter((entry) => !ids.has(String(entry?.id || '')));
+  writeScoped(HISTORY_KEY, historyStore);
+}
+
 function average(values) {
   if (!values.length) return 0;
   return values.reduce((sum, item) => sum + item, 0) / values.length;

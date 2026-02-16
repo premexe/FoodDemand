@@ -6,6 +6,7 @@ import {
   appendUploadHistoryForUser,
   loadUploadHistoryForUser,
   normalizeRows,
+  removeUploadHistoryEntriesForUser,
   saveDatasetForUser,
 } from '../utils/datasetStore';
 
@@ -218,6 +219,7 @@ export default function UploadDataPage() {
   const [columnMapping, setColumnMapping] = useState({ date: '', itemName: '', quantity: '', revenue: '' });
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadHistory, setUploadHistory] = useState(() => loadUploadHistoryForUser(userId));
+  const [selectedHistoryIds, setSelectedHistoryIds] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isRetraining, setIsRetraining] = useState(false);
 
@@ -227,6 +229,11 @@ export default function UploadDataPage() {
   useEffect(() => {
     setUploadHistory(loadUploadHistoryForUser(userId));
   }, [userId]);
+
+  useEffect(() => {
+    const validIds = new Set(uploadHistory.map((entry) => entry.id));
+    setSelectedHistoryIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [uploadHistory]);
 
   const parseAndSetFile = async (file) => {
     const lowerName = file.name.toLowerCase();
@@ -317,6 +324,30 @@ export default function UploadDataPage() {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     setIsRetraining(false);
     setUploadMessage('Model retraining started using latest imported dataset.');
+  };
+
+  const toggleHistorySelection = (entryId) => {
+    setSelectedHistoryIds((prev) => (
+      prev.includes(entryId)
+        ? prev.filter((id) => id !== entryId)
+        : [...prev, entryId]
+    ));
+  };
+
+  const toggleSelectAllHistory = () => {
+    if (selectedHistoryIds.length === uploadHistory.length) {
+      setSelectedHistoryIds([]);
+      return;
+    }
+    setSelectedHistoryIds(uploadHistory.map((entry) => entry.id));
+  };
+
+  const removeSelectedHistory = () => {
+    if (!selectedHistoryIds.length) return;
+    removeUploadHistoryEntriesForUser(userId, selectedHistoryIds);
+    setUploadHistory(loadUploadHistoryForUser(userId));
+    setSelectedHistoryIds([]);
+    setUploadMessage(`Removed ${selectedHistoryIds.length} history entr${selectedHistoryIds.length === 1 ? 'y' : 'ies'}.`);
   };
 
   return (
@@ -471,18 +502,51 @@ export default function UploadDataPage() {
             </div>
 
             <div className="bento-card p-6" style={cardStyle}>
-              <div className="badge-neon mb-4 w-fit">Upload History</div>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="badge-neon w-fit">Upload History</div>
+                {uploadHistory.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllHistory}
+                      className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.14em]"
+                      style={cardStyle}
+                    >
+                      {selectedHistoryIds.length === uploadHistory.length ? 'Unselect All' : 'Select All'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeSelectedHistory}
+                      disabled={!selectedHistoryIds.length}
+                      className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.14em] disabled:opacity-60"
+                      style={cardStyle}
+                    >
+                      Remove Selected ({selectedHistoryIds.length})
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               {uploadHistory.length > 0 ? (
                 <div className="space-y-3">
                   {uploadHistory.map((entry) => (
                     <div key={entry.id} className="rounded-2xl p-4" style={cardStyle}>
-                      <p className="text-sm font-black tracking-tight">{entry.fileName}</p>
-                      <p className="text-xs font-semibold" style={{ color: activeTheme.muted }}>
-                        {entry.rows} rows | Score {entry.score} | {entry.time}
-                      </p>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] mt-2" style={{ color: entry.status === 'Imported' ? '#00ff9d' : '#ff8e79' }}>
-                        {entry.status}
-                      </p>
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedHistoryIds.includes(entry.id)}
+                          onChange={() => toggleHistorySelection(entry.id)}
+                          className="mt-1 h-4 w-4"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-black tracking-tight break-all">{entry.fileName}</p>
+                          <p className="text-xs font-semibold" style={{ color: activeTheme.muted }}>
+                            {entry.rows} rows | Score {entry.score} | {entry.time}
+                          </p>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] mt-2" style={{ color: entry.status === 'Imported' ? '#00ff9d' : '#ff8e79' }}>
+                            {entry.status}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

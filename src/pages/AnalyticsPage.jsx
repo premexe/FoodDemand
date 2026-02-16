@@ -10,6 +10,8 @@ import { getCurrentUser } from '../auth/auth';
 import { DATASET_EVENT, loadDatasetForUser, summarizeDataset } from '../utils/datasetStore';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FORECAST_API_BASE = (import.meta.env.VITE_FORECAST_API_URL || '').trim().replace(/\/$/, '');
+const FORECAST_API_KEY = (import.meta.env.VITE_FORECAST_API_KEY || '').trim();
 
 function chartSx(theme) {
   return {
@@ -150,6 +152,65 @@ function buildAnalytics(summary, datasetRows) {
   };
 }
 
+function addDaysToIsoDate(baseDate, daysToAdd) {
+  const date = new Date(baseDate);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + daysToAdd);
+  return date.toISOString().slice(0, 10);
+}
+
+function aggregateDailyDemand(rows) {
+  const map = new Map();
+  rows.forEach((row) => {
+    map.set(row.date, (map.get(row.date) || 0) + row.quantity);
+  });
+  return Array.from(map.entries())
+    .map(([date, demand]) => ({ date, demand }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function buildForecastPayload(rows, selectedItem, horizonDays) {
+  const scopedRows = rows.slice(-500);
+  return {
+    horizonDays,
+    selectedItem: selectedItem === 'all' ? null : selectedItem,
+    dailySeries: aggregateDailyDemand(scopedRows),
+    rows: scopedRows,
+  };
+}
+
+function normalizeForecastResponse(data, startDate, horizonDays) {
+  const possibleArrays = [data?.forecast, data?.predictions, data?.data, Array.isArray(data) ? data : null];
+  const source = possibleArrays.find((entry) => Array.isArray(entry)) || [];
+
+  if (!source.length) return [];
+
+  if (source.every((entry) => Number.isFinite(Number(entry)))) {
+    return source.slice(0, horizonDays).map((value, index) => ({
+      date: addDaysToIsoDate(startDate, index + 1),
+      demand: Math.max(0, Math.round(Number(value))),
+    }));
+  }
+
+  const normalized = source
+    .map((entry, index) => {
+      if (entry === null || typeof entry !== 'object') return null;
+      const demandRaw = entry.demand ?? entry.prediction ?? entry.predicted ?? entry.yhat ?? entry.value ?? entry.qty ?? entry.quantity;
+      const demand = Number(demandRaw);
+      if (!Number.isFinite(demand)) return null;
+      const dateRaw = entry.date ?? entry.day ?? entry.ds ?? entry.timestamp;
+      const date = typeof dateRaw === 'string' ? dateRaw.slice(0, 10) : addDaysToIsoDate(startDate, index + 1);
+      return {
+        date,
+        demand: Math.max(0, Math.round(demand)),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return normalized.slice(0, horizonDays);
+}
+
 function inferIntent(text, context) {
   const prompt = String(text || '').trim().toLowerCase();
   if (!prompt) {
@@ -194,6 +255,10 @@ export default function AnalyticsPage() {
     { role: 'assistant', text: 'Dataset-aware analytics assistant ready. Ask: demand trend, unstable items, or revenue guidance.' },
   ]);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [horizonDays, setHorizonDays] = useState(7);
+  const [isForecastLoading, setIsForecastLoading] = useState(false);
+  const [forecastError, setForecastError] = useState('');
+  const [forecastRows, setForecastRows] = useState([]);
 
   useEffect(() => {
     const refresh = (event) => {
@@ -249,11 +314,85 @@ export default function AnalyticsPage() {
   }, [summary, filteredRows]);
   const hasDataset = datasetRows.length > 0;
   const filtersActive = selectedItem !== 'all' || Boolean(startDate) || Boolean(endDate);
+  const lastObservedDate = useMemo(() => {
+    if (!filteredRows.length) return new Date().toISOString().slice(0, 10);
+    return filteredRows.reduce((maxDate, row) => (row.date > maxDate ? row.date : maxDate), filteredRows[0].date);
+  }, [filteredRows]);
+
+  useEffect(() => {
+    setForecastRows([]);
+    setForecastError('');
+  }, [selectedItem, startDate, endDate, userId]);
 
   const clearFilters = () => {
     setSelectedItem('all');
     setStartDate('');
     setEndDate('');
+  };
+
+  const runForecast = async () => {
+    if (!FORECAST_API_BASE) {
+      setForecastError('Set VITE_FORECAST_API_URL in .env to enable live forecasts.');
+      setForecastRows([]);
+      return;
+    }
+    if (!filteredRows.length) {
+      setForecastError('No filtered rows available to build forecast input.');
+      setForecastRows([]);
+      return;
+    }
+
+    setIsForecastLoading(true);
+    setForecastError('');
+
+    const payload = buildForecastPayload(filteredRows, selectedItem, horizonDays);
+    const headers = { 'Content-Type': 'application/json' };
+    if (FORECAST_API_KEY) {
+      headers['x-api-key'] = FORECAST_API_KEY;
+    }
+
+    const paths = ['/forecast', '/predict'];
+    let lastError = 'Forecast API request failed.';
+
+    for (const path of paths) {
+      try {
+        const response = await fetch(`${FORECAST_API_BASE}${path}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          let message = `${response.status} ${response.statusText}`;
+          try {
+            const errorBody = await response.json();
+            if (typeof errorBody?.message === 'string' && errorBody.message.trim()) {
+              message = errorBody.message;
+            }
+          } catch {
+            // Keep HTTP status message.
+          }
+          lastError = `${path} failed: ${message}`;
+          continue;
+        }
+
+        const body = await response.json();
+        const normalized = normalizeForecastResponse(body, lastObservedDate, horizonDays);
+        if (!normalized.length) {
+          lastError = `${path} succeeded but returned no forecast rows.`;
+          continue;
+        }
+
+        setForecastRows(normalized);
+        setIsForecastLoading(false);
+        return;
+      } catch (error) {
+        lastError = `${path} failed: ${error.message || 'Network error'}`;
+      }
+    }
+
+    setForecastRows([]);
+    setForecastError(lastError);
+    setIsForecastLoading(false);
   };
 
   const handleSendMessage = () => {
@@ -386,6 +525,9 @@ export default function AnalyticsPage() {
 
         const weekdayLabels = analytics.weekdayPattern.map((item) => item.day);
         const weekdayValues = analytics.weekdayPattern.map((item) => item.qty);
+        const forecastLabels = forecastRows.map((row) => row.date.slice(5));
+        const forecastValues = forecastRows.map((row) => row.demand);
+        const forecastTotal = forecastValues.reduce((sum, value) => sum + value, 0);
 
         return (
           <div className="space-y-6" ref={reportRef}>
@@ -435,6 +577,70 @@ export default function AnalyticsPage() {
                   Clear Filters
                 </button>
               </div>
+            </section>
+
+            <section className="rounded-3xl border p-6" style={cardStyle}>
+              <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                <div>
+                  <div className="badge-neon mb-2 w-fit">Model Forecast</div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight">Demand Forecast API</h2>
+                  <p className="text-xs font-semibold mt-2" style={{ color: activeTheme.muted }}>
+                    Uses filtered dataset rows and calls {FORECAST_API_BASE || 'VITE_FORECAST_API_URL not configured'}.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={horizonDays}
+                    onChange={(event) => setHorizonDays(Number(event.target.value))}
+                    className="rounded-xl px-3 py-2 text-sm"
+                    style={{ backgroundColor: activeTheme.soft, border: `1px solid ${activeTheme.border}`, color: activeTheme.text }}
+                  >
+                    {[3, 7, 14, 30].map((days) => (
+                      <option key={days} value={days} style={{ color: '#111', backgroundColor: '#fff' }}>
+                        {days} days
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={runForecast}
+                    disabled={isForecastLoading}
+                    className="rounded-xl px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] disabled:opacity-60"
+                    style={cardStyle}
+                  >
+                    {isForecastLoading ? 'Running...' : 'Run Forecast'}
+                  </button>
+                </div>
+              </div>
+              {forecastError ? (
+                <div className="rounded-2xl p-4 text-sm font-semibold" style={{ ...cardStyle, backgroundColor: 'rgba(255,120,120,0.12)' }}>
+                  {forecastError}
+                </div>
+              ) : null}
+              {forecastRows.length > 0 ? (
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
+                  <div className="rounded-2xl p-4 border xl:col-span-2" style={{ borderColor: activeTheme.border }}>
+                    <BarChart
+                      height={250}
+                      sx={chartSx(activeTheme)}
+                      xAxis={[{ scaleType: 'band', data: forecastLabels }]}
+                      tooltip={{ trigger: 'item' }}
+                      series={[{ data: forecastValues, label: 'Forecast Demand', color: '#00df8c' }]}
+                      margin={{ left: 40, right: 20, top: 20, bottom: 30 }}
+                    />
+                  </div>
+                  <div className="rounded-2xl p-4 border" style={{ borderColor: activeTheme.border }}>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: activeTheme.muted }}>Forecast Window</p>
+                    <p className="text-3xl font-black mt-2">{horizonDays} days</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] mt-4" style={{ color: activeTheme.muted }}>Predicted Total</p>
+                    <p className="text-2xl font-black mt-2">{formatNumber(forecastTotal)} units</p>
+                    <div className="mt-4 text-xs font-semibold space-y-1" style={{ color: activeTheme.muted }}>
+                      {forecastRows.slice(0, 4).map((row) => (
+                        <p key={row.date}>{row.date}: {formatNumber(row.demand)}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
