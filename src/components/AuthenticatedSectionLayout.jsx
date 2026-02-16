@@ -105,7 +105,7 @@ export default function AuthenticatedSectionLayout({ title, subtitle, children }
           <div className="h-14 flex items-center justify-between gap-4">
             <button
               type="button"
-              onClick={() => navigate('/')}
+              onClick={() => window.location.reload()}
               className="text-xl font-black tracking-tight uppercase"
             >
               CookIQ<span className="text-[#00ff9d]">.</span>ai

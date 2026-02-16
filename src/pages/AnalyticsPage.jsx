@@ -14,18 +14,30 @@ const FORECAST_API_BASE = (import.meta.env.VITE_FORECAST_API_URL || '').trim().r
 const FORECAST_API_KEY = (import.meta.env.VITE_FORECAST_API_KEY || '').trim();
 
 function chartSx(theme) {
+  const labelColor = theme.text;
   return {
     '& .MuiChartsAxis-root .MuiChartsAxis-line': { stroke: theme.border },
     '& .MuiChartsAxis-root .MuiChartsAxis-tick': { stroke: theme.border },
-    '& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label': { fill: theme.text, fontSize: 11 },
+    '& .MuiChartsAxis-tickLabel, & .MuiChartsLegend-label': {
+      fill: `${labelColor} !important`,
+      color: `${labelColor} !important`,
+      fontSize: 11,
+    },
+    '& .MuiChartsAxis-tickLabel tspan, & .MuiChartsLegend-label tspan': {
+      fill: `${labelColor} !important`,
+    },
+    '& .MuiChartsAxis-label': {
+      fill: `${labelColor} !important`,
+      color: `${labelColor} !important`,
+    },
     '& .MuiChartsGrid-line': { stroke: theme.border },
     '& .MuiChartsLegend-root, & .MuiChartsLegend-root *': {
-      color: `${theme.text} !important`,
-      fill: `${theme.text} !important`,
+      color: `${labelColor} !important`,
+      fill: `${labelColor} !important`,
     },
     '& .MuiChartsTooltip-root, & .MuiChartsTooltip-root *': {
-      color: `${theme.text} !important`,
-      fill: `${theme.text} !important`,
+      color: `${labelColor} !important`,
+      fill: `${labelColor} !important`,
     },
   };
 }
@@ -583,9 +595,9 @@ export default function AnalyticsPage() {
               <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                 <div>
                   <div className="badge-neon mb-2 w-fit">Model Forecast</div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight">Demand Forecast API</h2>
+                  <h2 className="text-2xl font-black uppercase tracking-tight">Demand Forecast </h2>
                   <p className="text-xs font-semibold mt-2" style={{ color: activeTheme.muted }}>
-                    Uses filtered dataset rows and calls {FORECAST_API_BASE || 'VITE_FORECAST_API_URL not configured'}.
+                    Uses filtered dataset rows and calls your configured forecast API service.
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
