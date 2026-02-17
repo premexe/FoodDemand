@@ -1,8 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-
 let app;
 let auth;
+let initPromise;
 
 function requireEnv(name) {
   const value = import.meta.env[name];
@@ -12,18 +10,26 @@ function requireEnv(name) {
   return value;
 }
 
-export function getFirebaseAuth() {
+export async function getFirebaseAuth() {
   if (auth) {
     return auth;
   }
 
-  app = initializeApp({
-    apiKey: requireEnv('VITE_FIREBASE_API_KEY'),
-    authDomain: requireEnv('VITE_FIREBASE_AUTH_DOMAIN'),
-    projectId: requireEnv('VITE_FIREBASE_PROJECT_ID'),
-    appId: requireEnv('VITE_FIREBASE_APP_ID'),
-  });
-  auth = getAuth(app);
-  return auth;
-}
+  if (!initPromise) {
+    initPromise = Promise.all([
+      import('firebase/app'),
+      import('firebase/auth'),
+    ]).then(([appModule, authModule]) => {
+      app = appModule.initializeApp({
+        apiKey: requireEnv('VITE_FIREBASE_API_KEY'),
+        authDomain: requireEnv('VITE_FIREBASE_AUTH_DOMAIN'),
+        projectId: requireEnv('VITE_FIREBASE_PROJECT_ID'),
+        appId: requireEnv('VITE_FIREBASE_APP_ID'),
+      });
+      auth = authModule.getAuth(app);
+      return auth;
+    });
+  }
 
+  return initPromise;
+}

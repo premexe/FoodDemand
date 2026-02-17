@@ -1,6 +1,3 @@
-import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth';
-import { getFirebaseAuth } from './firebase';
-
 const AUTH_TOKEN_KEY = 'fooddemand.auth.token';
 const AUTH_USER_KEY = 'fooddemand.auth.user';
 const AUTH_USERS_KEY = 'fooddemand.auth.users';
@@ -21,6 +18,22 @@ const OTP_API_BASE = (import.meta.env.VITE_OTP_API_BASE_URL || 'http://localhost
 
 const pendingPhoneSessions = new Map();
 let recaptchaVerifier;
+let phoneAuthSdkPromise;
+
+async function getPhoneAuthSdk() {
+  if (!phoneAuthSdkPromise) {
+    phoneAuthSdkPromise = Promise.all([
+      import('firebase/auth'),
+      import('./firebase'),
+    ]).then(([authModule, firebaseModule]) => ({
+      RecaptchaVerifier: authModule.RecaptchaVerifier,
+      signInWithPhoneNumber: authModule.signInWithPhoneNumber,
+      signOut: authModule.signOut,
+      getFirebaseAuth: firebaseModule.getFirebaseAuth,
+    }));
+  }
+  return phoneAuthSdkPromise;
+}
 
 function safeParse(value, fallback) {
   try {
@@ -153,7 +166,12 @@ export function logout() {
 
 export async function sendPhoneOtp({ phoneNumber, recaptchaContainerId }) {
   const normalizedPhone = normalizeIndianPhone(phoneNumber);
-  const auth = getFirebaseAuth();
+  const {
+    RecaptchaVerifier,
+    signInWithPhoneNumber,
+    getFirebaseAuth,
+  } = await getPhoneAuthSdk();
+  const auth = await getFirebaseAuth();
 
   if (!recaptchaContainerId) {
     throw new Error('Missing reCAPTCHA container.');
@@ -183,6 +201,7 @@ export async function sendPhoneOtp({ phoneNumber, recaptchaContainerId }) {
 }
 
 export async function verifyPhoneOtp({ sessionId, otpCode }) {
+  const { signOut, getFirebaseAuth } = await getPhoneAuthSdk();
   const pending = pendingPhoneSessions.get(sessionId);
   const normalizedOtp = String(otpCode || '').trim();
 
@@ -203,7 +222,7 @@ export async function verifyPhoneOtp({ sessionId, otpCode }) {
   const verificationId = saveVerifiedIdentity('phone', pending.phoneNumber);
 
   try {
-    await signOut(getFirebaseAuth());
+    await signOut(await getFirebaseAuth());
   } catch {
     // Ignore signout failures for local auth flow.
   }

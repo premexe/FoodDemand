@@ -13,6 +13,14 @@ const otpTtlMs = 10 * 60 * 1000;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const pendingEmailOtps = new Map();
 
+function parseAllowedOrigins() {
+  const raw = process.env.OTP_ALLOWED_ORIGIN || 'http://localhost:5173';
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) {
@@ -36,8 +44,15 @@ function createTransport() {
 const mailer = createTransport();
 const fromAddress = requireEnv('SMTP_FROM');
 
+const allowedOrigins = parseAllowedOrigins();
 app.use(cors({
-  origin: process.env.OTP_ALLOWED_ORIGIN || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin not allowed by OTP server CORS.'));
+  },
 }));
 app.use(express.json());
 
